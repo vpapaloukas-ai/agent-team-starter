@@ -81,13 +81,14 @@ This template is the distillation of a method used across several real
 codebases — and it was itself put through that method: reviewed by independent
 agents told to find what was wrong with it, not to approve it.
 
-Two findings from that review are worth naming, because they are the kind of
-thing a starter usually hides:
+Two limits are worth naming, because they are the kind of thing a starter
+usually hides. The second is what that review found; the first came out of
+auditing this template again before publishing it:
 
 - `researcher` holds `Read` and `WebFetch` and no write tools. It genuinely
-  cannot change code — but `Read` + `WebFetch` together are an exfiltration
-  path (read a secret, fetch a URL). Least privilege is a direction, not a
-  finish line, and a template about blast radius should say so.
+  cannot change code, but `Read` + `WebFetch` together are an exfiltration
+  path (read a secret, fetch a URL). Neither tool grants that alone; the
+  composition does. Least privilege is enforced per tool, and this risk is not.
 - Claude Code tool grants are all-or-nothing. Some role constraints here are
   therefore enforced by capability and others only by the prompt. The
   distinction is real and this README would rather state it than blur it.
