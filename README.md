@@ -101,6 +101,26 @@ private, so that one is my word rather than something you can check:
   because it is macOS/Linux/WSL2 only and this template should work everywhere.
   If your threat model needs that lane closed, turn it on.
 
+- **Permission rules are session-scoped, so per-role limits are the soft part.**
+  This is the constraint that actually bites, and it is narrower than "you can't
+  scope tools". You *can*: path rules work, and they bind subagents. Measured —
+  a subagent's edit to a denied path was blocked, while an allowed path and a
+  nested path under it both succeeded.
+
+  What you cannot do is give **one role** a different boundary from another
+  without a conditional mechanism. `permissions` in `.claude/settings.json`
+  applies to the whole session, so scoping the architect to `docs/` with a deny
+  on `src/` would equally stop the implementer, whose entire job is writing
+  `src/`. The per-role tool is `permissionMode` in an agent's frontmatter, and
+  it is conditional: a parent session in `acceptEdits` or `bypassPermissions`
+  overrides it, and in auto mode "any `permissionMode` in the subagent's
+  frontmatter is ignored".
+
+  So this template does not ship it. Shipping a control that a permission mode
+  silently disables would be worse than the honest gap, because you would stop
+  checking. The `tools:` line stays the per-role boundary that always holds, and
+  it is coarse by design: whole tools, not paths.
+
 - `researcher` holds `Read` and `WebFetch` and no write tools. It genuinely
   cannot change code, but `Read` + `WebFetch` together are an exfiltration
   path (read a secret, fetch a URL). Neither tool grants that alone; the
