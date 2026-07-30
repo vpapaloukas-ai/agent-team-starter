@@ -2,7 +2,7 @@
 
 **A disciplined multi-agent workflow for Claude Code.** Drop it into any repo to run a small team of role-scoped subagents — *orchestrator, researcher, architect, implementer, reviewer* — through an explicit loop with gates, test-driven development, written decisions (ADRs), and adversarial review.
 
-> Built by [Vagelis Papaloukas](https://vpapaloukas.com) — a software architect who runs agent fleets on production systems. This is a clean-room distillation of a methodology I've re-derived across many codebases, not a copy of any one of them.
+> Built by [Vagelis Papaloukas](https://vpapaloukas.com) — a software architect who runs agent fleets on production systems. This is a clean-room teaching template: a distillation of a methodology I've re-derived across many codebases, not a copy of any one of them.
 
 ---
 
