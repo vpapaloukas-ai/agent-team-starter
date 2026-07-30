@@ -51,7 +51,7 @@ Real engineering teams don't work that way, and neither should an agent fleet. T
 ## The five patterns it teaches
 
 1. **Orchestrator-first delegation** — the coordinator plans and decides; it does not implement. Separation of concerns for agents.
-2. **Capability-slicing (least privilege)** — each agent gets only the tools its job needs (the `tools:` line in every agent file). The researcher and orchestrator are *capability-locked* — no write tools at all, so they literally can't touch code. The reviewer and architect keep one broader tool for their job (`Bash` to run tests, `Write` for ADRs) and are held to their lane by prompt plus the absence of editing tools — Claude Code grants tools all-or-nothing, so neither is hard-sandboxed to a subtree. The rule still pays off: the smaller each role's capability set, the smaller the blast radius.
+2. **Capability-slicing (least privilege)** — each agent gets only the tools its job needs (the `tools:` line in every agent file). The researcher and orchestrator are *capability-locked* — no write tools at all, so they literally can't touch code. The reviewer and architect keep one broader tool for their job (`Bash` to run tests, `Write` for ADRs). Two layers do the work, and they are not equally strong: the `tools:` line **is** all-or-nothing — you cannot write `tools: Bash(npm test)` — but `permissions.deny` in `.claude/settings.json` is a second layer that scopes by command pattern and, unlike a permission *mode*, holds in every mode including `bypassPermissions`. This repo ships six such rules. **Measured, not assumed:** a subagent's `curl --version` is blocked by the permission layer before execution, with a control confirming the config was in force. What that does **not** cover is in [Limits worth naming](#limits-worth-naming) — it is the honest half and it is short.
 3. **Test-first, always** — the implementer runs red → green → refactor and is forbidden from weakening a test to make it pass.
 4. **Decisions as artifacts** — non-obvious choices become one-page ADRs in `docs/adr/`, so "why" is reviewable instead of lost in a transcript.
 5. **The improvement loop** — `/retro` turns process friction into edits to the agents and commands themselves. The method gets better every time you use it (`docs/decisions-log.md`).
@@ -69,18 +69,37 @@ Open a Claude Code session in each worktree and run `/tdd` there. (Claude Code a
 
 ## QA-gate hooks
 
-`.claude/settings.json` wires a `PostToolUse` hook (`.claude/hooks/check.sh`) that runs a fast check after every edit and feeds failures straight back to the agent to fix — an automated gate, not a polite suggestion. **The bundled gate is a TypeScript example** that runs only when a local `tsc` is present (and no-ops otherwise) — **wire your own fast check for your stack** (lint/typecheck). Keep it fast; the `tsc` example is whole-project by nature, so scope your own gates to changed files where you can, and leave full suites to `/review` and CI.
+`.claude/settings.json` wires a `PostToolUse` hook (`.claude/hooks/check.sh`) that runs a fast check after every edit and feeds failures straight back to the agent to fix — an automated gate, not a polite suggestion.
+
+It recognises four toolchains: TypeScript (preferring your own `typecheck` script, then `vue-tsc`, then `tsc`), Rust, Go, and `ruff`. **If it recognises none of them it says so, once, instead of exiting quietly** — a gate that silently checks nothing is indistinguishable from a gate that passes, and that is worse than having no gate, because you believe you are covered. **Wire your own fast check for your stack** and set `detected=1` so the notice stops. Keep it fast; whole-project typechecks are slow by nature, so scope your own gates to changed files where you can, and leave full suites to `/review` and CI.
 
 ## Make it yours
 
 Every agent and command is a plain Markdown file with a short prompt. Edit them, tighten the gates, or add roles — a `security-reviewer`, a `docs-writer`, a `perf-analyst`. Start with five; add a sixth only when a real gap shows up (and record why, via `/retro`). The template is a starting posture, not a cage.
 
-## Two limits worth naming
+## Limits worth naming
 
-Most starters hide these. The first came from auditing this template before
-publishing it. The second came from an adversarial review pass — agents told to
+Most starters hide these. The first two came from auditing this template before
+publishing it. The third came from an adversarial review pass — agents told to
 find what was wrong with this, not to approve it — and that review log is
-private, so that half is my word rather than something you can check:
+private, so that one is my word rather than something you can check:
+
+- **`deny` rules gate which command runs, not where the bytes land.** The six
+  rules stop `curl`, `wget`, `rm -rf`, `git push`, `git reset --hard` and
+  `git clean -fd` for every agent. They do **not** stop a shell redirect. A
+  subagent holding `Bash` can still write anywhere your OS user can reach, via
+  `>`, `tee`, a heredoc, or a script that computes its target at runtime. So
+  "the reviewer cannot fix what it finds" is still enforced by prompt, not by
+  capability. Verified, not assumed: a subagent ran `echo test > /tmp/probe.txt`
+  successfully under exactly the ruleset shipped here.
+
+  Adding more deny patterns does not fix this, and neither does a `PreToolUse`
+  hook: both match the command string, and a string can be rewritten. The real
+  boundary is OS-level — Claude Code's [sandbox](https://code.claude.com/docs/en/sandboxing)
+  enforces filesystem limits on the process and its children, "regardless of
+  what the model chose to run", and subagents inherit it. It is not enabled here
+  because it is macOS/Linux/WSL2 only and this template should work everywhere.
+  If your threat model needs that lane closed, turn it on.
 
 - `researcher` holds `Read` and `WebFetch` and no write tools. It genuinely
   cannot change code, but `Read` + `WebFetch` together are an exfiltration
