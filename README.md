@@ -75,15 +75,12 @@ Open a Claude Code session in each worktree and run `/tdd` there. (Claude Code a
 
 Every agent and command is a plain Markdown file with a short prompt. Edit them, tighten the gates, or add roles — a `security-reviewer`, a `docs-writer`, a `perf-analyst`. Start with five; add a sixth only when a real gap shows up (and record why, via `/retro`). The template is a starting posture, not a cage.
 
-## How this was built
+## Two limits worth naming
 
-This template is the distillation of a method used across several real
-codebases — and it was itself put through that method: reviewed by independent
-agents told to find what was wrong with it, not to approve it.
-
-Two limits are worth naming, because they are the kind of thing a starter
-usually hides. The second is what that review found; the first came out of
-auditing this template again before publishing it:
+Most starters hide these. The first came from auditing this template before
+publishing it. The second came from an adversarial review pass — agents told to
+find what was wrong with this, not to approve it — and that review log is
+private, so that half is my word rather than something you can check:
 
 - `researcher` holds `Read` and `WebFetch` and no write tools. It genuinely
   cannot change code, but `Read` + `WebFetch` together are an exfiltration
