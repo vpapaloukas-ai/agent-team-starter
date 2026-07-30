@@ -2,14 +2,36 @@
   "permissions": {
     "allow": [
       "Bash(npm test)",
+      "Bash(npm run test:*)",
       "Bash(npm run lint)",
       "Bash(npm run build)",
+      "Bash(npm run typecheck)",
       "Bash(npx --no-install tsc:*)",
+      "Bash(pytest *)",
+      "Bash(python -m pytest *)",
+      "Bash(ruff check *)",
+      "Bash(cargo test *)",
+      "Bash(cargo check *)",
+      "Bash(cargo clippy *)",
+      "Bash(go test *)",
+      "Bash(go build *)",
+      "Bash(go vet *)",
+      "Bash(make test)",
+      "Bash(make lint)",
       "Bash(git diff:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
     ],
     "ask": [],
-    "deny": []
+    "deny": [
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -fd *)",
+      "Bash(rm -rf *)",
+      "Bash(curl *)",
+      "Bash(wget *)"
+    ]
   },
   "hooks": {
     "PostToolUse": [
