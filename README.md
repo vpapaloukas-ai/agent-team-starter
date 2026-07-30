@@ -95,7 +95,7 @@ auditing this template again before publishing it:
 
 ## Who made this
 
-I'm a software architect with 26 years of shipping production systems — this template is the method I actually build with, not a thought experiment. I write about what survives production; follow along if that's useful.
+I'm a software architect with ~26 years of shipping production systems — this template is the method I actually build with, not a thought experiment. I write about what survives production; follow along if that's useful.
 
 → [vpapaloukas.com](https://vpapaloukas.com) · [LinkedIn](https://linkedin.com/in/vpapaloukas)
 
