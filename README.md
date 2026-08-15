@@ -51,7 +51,7 @@ Real engineering teams don't work that way, and neither should an agent fleet. T
 ## The five patterns it teaches
 
 1. **Orchestrator-first delegation** — the coordinator plans and decides; it does not implement. Separation of concerns for agents.
-2. **Capability-slicing (least privilege)** — each agent gets only the tools its job needs (the `tools:` line in every agent file). The researcher and orchestrator are *capability-locked* — no write tools at all, so they literally can't touch code. The reviewer and architect keep one broader tool for their job (`Bash` to run tests, `Write` for ADRs). Two layers do the work, and they are not equally strong: the `tools:` line **is** all-or-nothing — you cannot write `tools: Bash(npm test)` — but `permissions.deny` in `.claude/settings.json` is a second layer that scopes by command pattern and, unlike a permission *mode*, holds in every mode including `bypassPermissions`. This repo ships six such rules. **Measured, not assumed:** a subagent's `curl --version` is blocked by the permission layer before execution, with a control confirming the config was in force. What that does **not** cover is in [Limits worth naming](#limits-worth-naming) — it is the honest half and it is short.
+2. **Capability-slicing (least privilege)** — each agent gets only the tools its job needs (the `tools:` line in every agent file). The researcher is *capability-locked* — no write tools, and no way to hand work to something that has them, so it literally cannot touch code. The orchestrator is capability-locked for **authorship** and not for **reach**: it writes nothing itself, and `Task` lets it delegate to an agent that writes anything (see [Limits worth naming](#limits-worth-naming)). The reviewer and architect keep one broader tool for their job (`Bash` to run tests, `Write` for ADRs). Two layers do the work, and they are not equally strong: the `tools:` line **is** all-or-nothing — you cannot write `tools: Bash(npm test)` — but `permissions.deny` in `.claude/settings.json` is a second layer that scopes by command pattern and, unlike a permission *mode*, holds in every mode including `bypassPermissions`. This repo ships six such rules. **Measured, not assumed:** a subagent's `curl --version` is blocked by the permission layer before execution, with a control confirming the config was in force. What that does **not** cover is in [Limits worth naming](#limits-worth-naming) — it is the honest half and it is short.
 3. **Test-first, always** — the implementer runs red → green → refactor and is forbidden from weakening a test to make it pass.
 4. **Decisions as artifacts** — non-obvious choices become one-page ADRs in `docs/adr/`, so "why" is reviewable instead of lost in a transcript.
 5. **The improvement loop** — `/retro` turns process friction into edits to the agents and commands themselves. The method gets better every time you use it (`docs/decisions-log.md`).
@@ -118,8 +118,39 @@ private, so that one is my word rather than something you can check:
 
   So this template does not ship it. Shipping a control that a permission mode
   silently disables would be worse than the honest gap, because you would stop
-  checking. The `tools:` line stays the per-role boundary that always holds, and
-  it is coarse by design: whole tools, not paths.
+  checking. The `tools:` line stays the per-role boundary that always holds **for
+  the role it names**, and it is coarse by design: whole tools, not paths. What it
+  does not bound is what that role can reach through delegation, which is the next
+  bullet.
+
+- 🔴 **`Task` in a grant re-opens everything the grant removed.** `orchestrator`
+  holds no write tool and can still spawn `general-purpose` or `claude`, which
+  hold all of them. **Measured, not assumed:** with a parent scoped to
+  `Read, Grep, Glob, Task` and its delegate scoped to read-only tools, both grants
+  held in every run — the delegate asked for a shell and was told *"No such tool
+  available"* — and the protected file was destroyed in 24 runs of 24 across two
+  models, because the parent escalated to a full-capability agent when the scoped
+  one could not act. A role's real capability is the union of every agent it can
+  reach, and on a default install that union is everything.
+
+  What closed it, measured on the same cells: a **refuse-by-default permission
+  mode** behind the grant. 36 runs destroyed the file without one and 0 with one,
+  across two models, and it works set in a project's own `settings.json` rather
+  than only as a CLI flag. The escalation still happens; the escalated agent
+  inherits the mode and every write it attempts is refused.
+
+  ⚠️ **This template does not enable it, and enabling it is not a one-line
+  change.** `permissions.allow` here grants shell commands and nothing else, so a
+  refusing mode would also refuse the implementer, whose entire job is writing
+  `src/`. The obvious answer is to widen the allow list first, and **that is where
+  the honest gap is: I could not get an allow entry to permit a refused command
+  under that mode.** Four attempts, two pattern spellings, three commands, all
+  still refused, with the mode confirmed active in the session's own startup
+  record each time. That is not proof the allow list is inert — I have no arm
+  where one demonstrably permits something, so it may equally be my patterns —
+  and until that control exists neither reading is supported. **Test it against
+  your own toolchain before turning the mode on, and do not assume a matching
+  entry is enough.**
 
 - `researcher` holds `Read` and `WebFetch` and no write tools. It genuinely
   cannot change code, but `Read` + `WebFetch` together are an exfiltration
